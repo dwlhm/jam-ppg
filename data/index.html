@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ESP32 Web Server</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+  <a href="/"><h1>MAX30105 Dashboard Server</h1></a>
+  <p>Sensor data: <strong id="state"> %STATE%</strong></p>
+  <p><!-- <a href="/on"> --><button class="button" id="button">ON</button><!-- </a> --></p>
+  <p><a href="/data" target="_blank"><button class="button button2">Download CSV Data</button></a></p>
+  <div>
+    <canvas id="myChart"></canvas>
+    <textarea id="value"></textarea>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const ctx = document.getElementById('myChart');
+    var data_temp_date = [];
+    var data_temp_value = [];
+    var data = {
+      labels: [],
+      datasets: [{
+        label: 'MAX30105',
+        data: [],
+        fill: false,
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1
+      }]
+    }
+
+    var chart = new Chart(ctx, {
+      type: 'line',
+      data: data
+    });
+
+    var gateway = `ws://${window.location.hostname}/ws`;
+    var websocket;
+    window.addEventListener('load', onLoad);
+    function initWebSocket() {
+      console.log('Trying to open a WebSocket connection...');
+      websocket = new WebSocket(gateway);
+      websocket.onopen    = onOpen;
+      websocket.onclose   = onClose;
+      websocket.onmessage = onMessage; // <-- add this line
+    }
+    function onOpen(event) {
+      console.log('Connection opened');
+    }
+    function onClose(event) {
+      console.log('Connection closed');
+      setTimeout(initWebSocket, 2000);
+    }
+    function onMessage(event) {
+      var state = event.data;
+      if (state.length > 1) {
+        document.getElementById("state").innerHTML = "Reading";
+        document.getElementById('value').value += state + "\n";
+      //   data_temp_date.push(new Date().toLocaleTimeString());
+      //   data_temp_value.push(Number(state));
+      //   if (data.labels.length > 100) {
+      //     data_temp_date.shift();
+      //     data_temp_value.shift();
+      //   }
+      }
+      else document.getElementById("state").innerHTML = "Idle";
+    }
+    function onLoad(event) {
+      initWebSocket();
+      initButton();
+    }
+    function initButton() {
+      document.getElementById('button').addEventListener('click', toggle);
+    }
+    function toggle(){
+      websocket.send('r');
+    }
+    // setTimeout(() => {
+    //   data.datasets = data_temp
+    //   chart.update();
+    // }, 1000);
+  </script>
+</body>
+</html>
