@@ -7,8 +7,8 @@
 #include "filters.h"
 
 /* WiFi Configuration */
-const char* ssid = "F";
-const char* password = "kampret2018";
+const char* ssid = "PATS";
+const char* password = "280401pats";
 
 String sensor_state = "idle";
 
@@ -24,8 +24,8 @@ String processor(const String& var){
 /* CSV Configuration */
 File csv;
 
-float data_sensor[10001]; 
-uint32_t data_time[10001]; 
+int16_t data_sensor[12001]; 
+uint16_t data_time[12001]; 
 // float data_sensor2[10000]; 
 uint16_t pointer;
 
@@ -38,9 +38,9 @@ MAX30105::MultiLedConfiguration cfg = {
 };
 MAX30105 sensor;
 const auto kSamplingRate = sensor.SAMPLING_RATE_1600SPS;
-const float kSamplingFrequency = 400.0;
+const float kSamplingFrequency = 1600.0;
 const float kLowPassCutoff = 3.0;
-const float kHighPassCutoff = 0.7;
+const float kHighPassCutoff = 0.15;
 HighPassFilter high_pass_filter(kHighPassCutoff, kSamplingFrequency);
 LowPassFilter low_pass_filter(kLowPassCutoff, kSamplingFrequency);
 Differentiator differentiator(kSamplingFrequency);
@@ -101,9 +101,9 @@ void read_sensor() {
   raw_data = high_pass_filter.process(raw_data);
   raw_data = differentiator.process(raw_data);
 
-  // if (pointer < 10000) {
+  if (pointer < 12000) {
     data_sensor[pointer] = raw_data;
-  // }
+  }
 
   pointer++;
   // Serial.println(current_diff);
@@ -160,6 +160,9 @@ void setup() {
   // Start server
   server.begin();
 
+  write_csv("s");
+  Serial.println("START");
+
 }
 
 void loop() {
@@ -181,10 +184,10 @@ void loop() {
       raw_data = differentiator.process(raw_data);
 
       data_time[pointer] = millis() - current_time;
-      data_sensor[pointer] = raw_data;
+      data_sensor[pointer] = raw_data/10000;
 
       pointer++;
-      if (pointer > 10000) {
+      if (pointer > 12000) {
         break;
       // pointer++;
       // } else {
@@ -194,9 +197,9 @@ void loop() {
     }
     Serial.print("pointer: " + (String)pointer);
     notifyClients("i");
-    for (size_t i = 0; i < 20230; i++)
+    for (size_t i = 0; i < 12000; i++)
     {
-      write_csv((String)data_time[i] + ";" + (String)data_sensor[i]);
+      write_csv((String)data_time[i] + ";" + String((data_sensor[i]/10000), 4));
     }
     
     Serial.print("Pembacaan Selesai");
